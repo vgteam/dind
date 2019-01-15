@@ -1,5 +1,5 @@
-FROM ubuntu:14.04
-MAINTAINER jerome.petazzoni@docker.com
+FROM ubuntu:18.04
+MAINTAINER anovak@soe.ucsc.edu
 
 # Let's start with some basic stuff.
 RUN apt-get update -qq && apt-get install -qqy \
