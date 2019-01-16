@@ -15,17 +15,19 @@ If you do *not* need your child containers to be actual children (i.e. you don't
 
 ## Quickstart
 
-Run Docker-in-Docker and get a shell where you can play, and docker daemon logs
-to stdout:
+Run Docker-in-Docker and get a shell where you can play, with docker daemon logs
+going into `/var/log/docker.log`:
 ```bash
 docker run --privileged -t -i quay.io/vgteam/dind
 ```
 
-Run Docker-in-Docker and get a shell where you can play, but docker daemon logs
-into `/var/log/docker.log`:
+Run Docker-in-Docker and get a shell where you can play, and docker daemon logs
+to stdout:
 ```bash
-docker run --privileged -t -i -e LOG=file quay.io/vgteam/dind
+docker run --privileged -t -i -e LOG= quay.io/vgteam/dind
 ```
+
+
 
 ### Daemon configuration
 
