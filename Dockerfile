@@ -21,3 +21,5 @@ RUN chmod +x /usr/local/bin/wrapdocker
 VOLUME /var/lib/docker
 ENTRYPOINT ["wrapdocker"]
 
+# Make file logging the default
+ENV LOG=file
