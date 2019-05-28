@@ -2,16 +2,17 @@ FROM ubuntu:18.04
 MAINTAINER anovak@soe.ucsc.edu
 
 # Let's start with some basic stuff.
+# Also install Docker from Ubuntu repositories, which
+# should be sufficiently new to run in a container.
 RUN apt-get update -qq && apt-get install -qqy \
     apt-transport-https \
     ca-certificates \
     curl \
     lxc \
     iptables \
-    sudo
-    
-# Install Docker from Docker Inc. repositories.
-RUN curl -sSL https://get.docker.com/ | sh
+    sudo \
+    docker.io \
+    containerd
 
 # Install the magic wrapper.
 ADD ./wrapdocker /usr/local/bin/wrapdocker
