@@ -4,7 +4,8 @@ MAINTAINER anovak@soe.ucsc.edu
 # Let's start with some basic stuff.
 # Also install Docker from Ubuntu repositories, which
 # should be sufficiently new to run in a container.
-RUN apt-get update -qq && apt-get install -qqy \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -qqy \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -12,9 +13,14 @@ RUN apt-get update -qq && apt-get install -qqy \
     iptables \
     sudo \
     docker.io \
-    containerd
+    containerd && \
+    apt-get clean
 
-# Install the magic wrapper.
+# Install the magic Docker startup script.
+ADD ./wrapdocker /usr/local/bin/startdocker
+RUN chmod +x /usr/local/bin/startdocker
+
+# Install the magic wrapper to serve as the entry point.
 ADD ./wrapdocker /usr/local/bin/wrapdocker
 RUN chmod +x /usr/local/bin/wrapdocker
 
