@@ -17,7 +17,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
     apt-get clean
 
 # Install the magic Docker startup script.
-ADD ./wrapdocker /usr/local/bin/startdocker
+ADD ./startdocker /usr/local/bin/startdocker
 RUN chmod +x /usr/local/bin/startdocker
 
 # Install the magic wrapper to serve as the entry point.
