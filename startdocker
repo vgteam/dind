@@ -51,9 +51,11 @@ do
         # Systemd and OpenRC (and possibly others) both create such a
         # cgroup. To avoid the aforementioned bug, we symlink "foo" to
         # "name=foo". This shouldn't have any adverse effect.
+        # But this also tends to produce permissin errors, so we drop
+        # error output.
         echo $SUBSYS | grep -q ^name= && {
                 NAME=$(echo $SUBSYS | sed s/^name=//)
-                ln -s $SUBSYS $CGROUP/$NAME
+                ln -s $SUBSYS $CGROUP/$NAME 2>/dev/null
         }
 
         # Likewise, on at least one system, it has been reported that
@@ -61,7 +63,8 @@ do
         # (respectively "cpu" and "cpuacct") with "-o cpuacct,cpu"
         # but on a directory called "cpu,cpuacct" (note the inversion
         # in the order of the groups). This tries to work around it.
-        [ $SUBSYS = cpuacct,cpu ] && ln -s $SUBSYS $CGROUP/cpu,cpuacct
+        [ $SUBSYS = cpuacct,cpu ] && ln -s $SUBSYS $CGROUP/cpu,cpuacct \
+                                     2>/dev/null
 done
 
 # Note: as I write those lines, the LXC userland tools cannot setup
