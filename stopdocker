@@ -14,7 +14,7 @@ kill "$(cat /var/run/docker.pid)"
 
 # Wait for it to go away
 (( timeout = 60 + SECONDS ))
-while [ -e /var/run/docker.sock ]
+while [ -e /var/run/docker.sock ] || [ -e /var/run/docker.pid ]
 do
     if (( SECONDS >= timeout )); then
         echo 'Timed out trying to stop docker.' >&2
