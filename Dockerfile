@@ -20,6 +20,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
 ADD ./startdocker /usr/local/bin/startdocker
 RUN chmod +x /usr/local/bin/startdocker
 
+# Install a script to turn it off again.
+ADD ./stopdocker /usr/local/bin/stopdocker
+RUN chmod +x /usr/local/bin/stopdocker
+
 # Install the magic wrapper to serve as the entry point.
 ADD ./wrapdocker /usr/local/bin/wrapdocker
 RUN chmod +x /usr/local/bin/wrapdocker

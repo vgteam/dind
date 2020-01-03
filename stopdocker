@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# stopdocker: stop the Docker that was started by startdocker.
+# Useful for keeping Kubernetes pods from being kept running by a Docker
+# daemon.
+
+if [ ! -f /var/run/docker.pid ]
+then
+    # Docker should not be running.
+    exit
+fi
+
+kill "$(cat /var/run/docker.pid)"
+
+# Wait for it to go away
+(( timeout = 60 + SECONDS ))
+while [ -e /var/run/docker.sock ]
+do
+    if (( SECONDS >= timeout )); then
+        echo 'Timed out trying to stop docker.' >&2
+        break
+    fi
+    sleep 1
+done
