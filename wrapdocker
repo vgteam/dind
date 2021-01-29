@@ -5,7 +5,7 @@
 # in the background and the args or plain Bash in the foreground. 
 
 # If we were given a PORT environment variable, exec startdocker which will block;
-# otherwise, run it and wait for it to start up background Docker, and exec
+# otherwise, run it and wait for it to start up background Docker, and exec our
 # arguments or a shell
 if [ "$PORT" ]
 then
