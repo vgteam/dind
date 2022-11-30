@@ -136,8 +136,8 @@ else
         ACTIVE_CONTROLLERS="$(cat /sys/fs/cgroup/cgroup.subtree_control)"
         
         # Prepend plusses and minuses
-        CONTROLLERS_OFF="$(echo "-${WANTED_CONTROLLERS}" | sed 's/\(^\| \)\([^ ]\)/\1+\2/g')"
-        CONTROLLERS_ON="$(echo "+${WANTED_CONTROLLERS}" | sed 's/\(^\| \)\([^ ]\)/\1-\2/g')"
+        CONTROLLERS_OFF="$(echo "${WANTED_CONTROLLERS}" | sed 's/\(^\| \)\([^ ]\)/\1-\2/g')"
+        CONTROLLERS_ON="$(echo "${WANTED_CONTROLLERS}" | sed 's/\(^\| \)\([^ ]\)/\1+\2/g')"
         
         # Turn off our subtree's controllers
         echo "${CONTROLLERS_OFF}" > /sys/fs/cgroup/cgroup.subtree_control
