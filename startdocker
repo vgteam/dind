@@ -151,6 +151,9 @@ else
         cat /sys/fs/cgroup/cgroup.procs | xargs -rn 1 echo >/sys/fs/cgroup/init/cgroup.procs
         # Note that we still see the same cgroup hierarchy root even though
         # we should now be in a child cgroup of where we were before.
+        # TODO: We will get "echo: write error: No such process" from this
+        # sometimes. Why? And can we drop whatever that is from the list in
+        # advance?
         
         # Now turn the controllers back on again
         echo "${CONTROLLERS_ON}" > /sys/fs/cgroup/cgroup.subtree_control
