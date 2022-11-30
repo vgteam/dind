@@ -121,7 +121,7 @@ else
     # delete it so that docker can start.
     rm -rf /var/run/docker.pid
     
-    if [ grep ^$$\$ /sys/fs/cgroup/cgroup.procs ] && [ -e /sys/fs/cgroup/cgroup.controllers ]; then
+    if grep ^$$\$ /sys/fs/cgroup/cgroup.procs >/dev/null && [ -e /sys/fs/cgroup/cgroup.controllers ]; then
         WANTED_CONTROLLERS="$(cat /sys/fs/cgroup/cgroup.subtree_control)"
         if [ ! -z "${WANTED_CONTROLLERS}" ] ; then
             # We need to move to a child cgroup. See
