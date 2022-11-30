@@ -122,38 +122,40 @@ else
     rm -rf /var/run/docker.pid
     
     if grep ^$$\$ /sys/fs/cgroup/cgroup.procs >/dev/null && [ -e /sys/fs/cgroup/cgroup.controllers ]; then
-        WANTED_CONTROLLERS="$(cat /sys/fs/cgroup/cgroup.subtree_control)"
-        if [ ! -z "${WANTED_CONTROLLERS}" ] ; then
-            # We need to move to a child cgroup. See
-            # https://github.com/moby/moby/blob/ed89041433a031cafc0a0f19cfe573c31688d377/hack/dind#L28-L37
-            # TODO: when containers change to get set up in a way that lets
-            # Docker just make its own v2 cgroup properly, stop trying to do
-            # this. See
-            # <https://github.com/docker/for-mac/issues/6288#issuecomment-1250799498>
-            echo "Moving everybody to a child cgroup. This will not work if we can't escape our cgroup!"
-            set -x
+        # We need to move to a child cgroup. See
+        # https://github.com/moby/moby/blob/ed89041433a031cafc0a0f19cfe573c31688d377/hack/dind#L28-L37
+        # TODO: when containers change to get set up in a way that lets
+        # Docker just make its own v2 cgroup properly, stop trying to do
+        # this. See
+        # <https://github.com/docker/for-mac/issues/6288#issuecomment-1250799498>
+        echo "Moving everybody to a child cgroup. This may not work if we can't escape our cgroup!"
+        set -x
+        
+        # The root cgroup we start in in a container might not actually have
+        # any controllers on yet, but we still need to move.
+        ACTIVE_CONTROLLERS="$(cat /sys/fs/cgroup/cgroup.subtree_control)"
+        
+        # Prepend plusses and minuses
+        CONTROLLERS_OFF="$(echo "-${WANTED_CONTROLLERS}" | sed 's/\(^\| \)\([^ ]\)/\1+\2/g')"
+        CONTROLLERS_ON="$(echo "+${WANTED_CONTROLLERS}" | sed 's/\(^\| \)\([^ ]\)/\1-\2/g')"
+        
+        # Turn off our subtree's controllers
+        echo "${CONTROLLERS_OFF}" > /sys/fs/cgroup/cgroup.subtree_control
+        
+        # Make a new cgroup under this one. Hope it isn't used yet.
+        mkdir -p /sys/fs/cgroup/init
+        
+        # Since the controllers are all off we can have child processes in
+        # a child cgroup, so move everybody one at a time and hope nobody
+        # is forking. Each process needs to move in its own write() call.
+        cat /sys/fs/cgroup/cgroup.procs | xargs -rn 1 echo >/sys/fs/cgroup/init/cgroup.procs
+        # Note that we still see the same cgroup hierarchy root even though
+        # we should now be in a child cgroup of where we were before.
+        
+        # Now turn the controllers back on again
+        echo "${CONTROLLERS_ON}" > /sys/fs/cgroup/cgroup.subtree_control
             
-            CONTROLLERS_OFF="$(echo "-${WANTED_CONTROLLERS}" | sed 's/ / -/g')"
-            CONTROLLERS_ON="$(echo "+${WANTED_CONTROLLERS}" | sed 's/ / +/g')"
-            
-            # Turn off our subtree's controllers
-            echo "${CONTROLLERS_OFF}" > /sys/fs/cgroup/cgroup.subtree_control
-            
-            # Make a new cgroup under this one. Hope it isn't used yet.
-            mkdir -p /sys/fs/cgroup/init
-            
-            # Since the controllers are all off we can have child processes in
-            # a child cgroup, so move everybody one at a time and hope nobody
-            # is forking. Each process needs to move in its own write() call.
-            cat /sys/fs/cgroup/cgroup.procs | xargs -rn 1 echo >/sys/fs/cgroup/init/cgroup.procs
-            # Note that we still see the same cgroup hierarchy root even though
-            # we should now be in a child cgroup of where we were before.
-            
-            # Now turn the controllers back on again
-            echo "${CONTROLLERS_ON}" > /sys/fs/cgroup/cgroup.subtree_control
-            
-            set +x
-        fi
+        set +x
     fi
 
     # If we were given a PORT environment variable, start Docker in the foreground.
