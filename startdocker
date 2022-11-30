@@ -6,6 +6,21 @@
 # the daemon in the background. Passes along DOCKER_DAEMON_ARGS to the daemon,
 # and sends the log to a file if LOG is set to "file".
 #
+# When cgroups v2 are in use, and we are found to be running at the root of the
+# visible cgroup hierarchy (i.e. in a plain Kubernetes container not enhanced
+# with something like
+# https://github.com/k3d-io/k3d/pull/579/files#diff-71e760f22ea8192fe65294b2330d4bd29fc3888fbf283ba4ac69fda1af3878dd),
+# then we try to turn off all the confinement domains, bundle all the processes
+# in the cgroup into a new child cgroup, and turn them back on again, so that
+# Docker can actually use cgroups v2 to further confine sub-containers.
+# Otherwise, Docker tries to make a cgroup directly under the container's root
+# one, and if it tries to enable e.g. a memory limit on it, cgroups v2 refuses
+# because running processes aren't allowed in cgroups with resource-limited
+# children, because that makes scheduler correctness hard. See
+# https://github.com/docker/for-mac/issues/6288#issuecomment-1250799498 and
+# also the documentation for cgroups v2 at
+# https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html.
+#
 # To *stop* Docker, use stopdocker
 #
 # If running without PORT, waits for Docker to be ready, and automatically
@@ -41,6 +56,7 @@ else
     fi
 
     # Mount the cgroup hierarchies exactly as they are in the parent system.
+    # TODO: Is this needed anymore? The Docker dind removed it.
     for SUBSYS in $(cut -d: -f2 /proc/1/cgroup)
     do
             [ -d $CGROUP/$SUBSYS ] || mkdir $CGROUP/$SUBSYS
@@ -104,6 +120,41 @@ else
     # If a pidfile is still around (for example after a container restart),
     # delete it so that docker can start.
     rm -rf /var/run/docker.pid
+    
+    if [ grep ^$$\$ /sys/fs/cgroup/cgroup.procs ] && [ -e /sys/fs/cgroup/cgroup.controllers ]; then
+        WANTED_CONTROLLERS="$(cat /sys/fs/cgroup/cgroup.subtree_control)"
+        if [ ! -z "${WANTED_CONTROLLERS}" ] ; then
+            # We need to move to a child cgroup. See
+            # https://github.com/moby/moby/blob/ed89041433a031cafc0a0f19cfe573c31688d377/hack/dind#L28-L37
+            # TODO: when containers change to get set up in a way that lets
+            # Docker just make its own v2 cgroup properly, stop trying to do
+            # this. See
+            # <https://github.com/docker/for-mac/issues/6288#issuecomment-1250799498>
+            echo "Moving everybody to a child cgroup. This will not work if we can't escape our cgroup!"
+            set -x
+            
+            CONTROLLERS_OFF="$(echo "-${WANTED_CONTROLLERS}" | sed 's/ / -/g')"
+            CONTROLLERS_ON="$(echo "+${WANTED_CONTROLLERS}" | sed 's/ / +/g')"
+            
+            # Turn off our subtree's controllers
+            echo "${CONTROLLERS_OFF}" > /sys/fs/cgroup/cgroup.subtree_control
+            
+            # Make a new cgroup under this one. Hope it isn't used yet.
+            mkdir -p /sys/fs/cgroup/init
+            
+            # Since the controllers are all off we can have child processes in
+            # a child cgroup, so move everybody one at a time and hope nobody
+            # is forking. Each process needs to move in its own write() call.
+            cat /sys/fs/cgroup/cgroup.procs | xargs -rn 1 echo >/sys/fs/cgroup/init/cgroup.procs
+            # Note that we still see the same cgroup hierarchy root even though
+            # we should now be in a child cgroup of where we were before.
+            
+            # Now turn the controllers back on again
+            echo "${CONTROLLERS_ON}" > /sys/fs/cgroup/cgroup.subtree_control
+            
+            set +x
+        fi
+    fi
 
     # If we were given a PORT environment variable, start Docker in the foreground.
     # Otherwise, start it in the background
