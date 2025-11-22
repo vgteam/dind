@@ -1,4 +1,4 @@
-FROM mirror.gcr.io/library/ubuntu:20.04
+FROM mirror.gcr.io/library/ubuntu:22.04
 MAINTAINER anovak@soe.ucsc.edu
 
 # Make sure that package update and installation happens fresh every time this
